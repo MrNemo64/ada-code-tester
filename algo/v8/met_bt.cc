@@ -27,9 +27,9 @@ struct NetworkValues
 
 NetworkValues INPUT_VALUES;
 
-float algoritmo(vector<bool> &result);
-void algoritmo(vector<bool> &actual, vector<bool> &best, double &best_cost, size_t gw_amount, size_t node_amount, size_t putted_gw);
-bool prometedor(const vector<bool> &actual, double best_cost, size_t node_amount);
+float algorithm(vector<bool> &result);
+void algorithm(vector<bool> &actual, vector<bool> &best, double &best_cost, size_t gw_amount, size_t node_amount, size_t putted_gw);
+bool promising(const vector<bool> &actual, double best_cost, size_t node_amount);
 Node closest_gateway(Node n, const vector<bool> &gws, size_t all_gw_after = INPUT_VALUES.node_count);
 double min_expected_trafic(const vector<bool> &gws, size_t calculate_until = INPUT_VALUES.node_count);
 double inline distanceBetween(const Node a, const Node b);
@@ -39,43 +39,43 @@ void parseArgs(int argc, char **args);
 void loadNetworkValues(string fileName);
 void showUssage();
 
-unsigned long nodos_visitados;
-unsigned long nodos_explorados;
-unsigned long hojas_visitadas;
-unsigned long nodos_descartados_no_factibles;
-unsigned long nodos_descartados_no_prometedores;
+unsigned long visited_nodes;
+unsigned long explored_nodes;
+unsigned long visited_leafs;
+unsigned long discarded_nodes_not_feasible;
+unsigned long discarded_nodes_not_promising;
 
 int main(int argc, char **args)
 {
     parseArgs(argc, args);
     vector<bool> solucion;
-    clock_t time = algoritmo(solucion);
+    clock_t time = algorithm(solucion);
     show(solucion, time);
     return 0;
 }
 
-float algoritmo(vector<bool> &result)
+float algorithm(vector<bool> &result)
 {
-    nodos_visitados = 0;
-    nodos_explorados = 0;
-    hojas_visitadas = 0;
-    nodos_descartados_no_factibles = 0;
-    nodos_descartados_no_prometedores = 0;
+    visited_nodes = 0;
+    explored_nodes = 0;
+    visited_leafs = 0;
+    discarded_nodes_not_feasible = 0;
+    discarded_nodes_not_promising = 0;
     double start = clock();
     result.clear();
     result.reserve(INPUT_VALUES.node_count);
-    vector<bool> actual(INPUT_VALUES.node_count, true); // todos son gw y vamos quitando
+    vector<bool> actual(INPUT_VALUES.node_count, true); // all are gw and we take out
     double best_cost = numeric_limits<double>::max();
-    algoritmo(actual, result, best_cost, INPUT_VALUES.node_count, 0, 0);
+    algorithm(actual, result, best_cost, INPUT_VALUES.node_count, 0, 0);
     double end = clock();
     return (end - start) / (CLOCKS_PER_SEC / 1000.0);
 }
 
-void algoritmo(vector<bool> &actual, vector<bool> &best, double &best_cost, size_t gw_amount, size_t node_amount, size_t putted_gw)
+void algorithm(vector<bool> &actual, vector<bool> &best, double &best_cost, size_t gw_amount, size_t node_amount, size_t putted_gw)
 {
     if (node_amount == INPUT_VALUES.node_count)
     {
-        hojas_visitadas++;
+        visited_leafs++;
         double met = min_expected_trafic(actual);
         if (met < best_cost)
         {
@@ -87,48 +87,48 @@ void algoritmo(vector<bool> &actual, vector<bool> &best, double &best_cost, size
 
     int next_node_amout = node_amount + 1;
 
-    // si la dejamos
-    nodos_visitados++;
+    // leave it
+    visited_nodes++;
     if (putted_gw < INPUT_VALUES.gw_count)
-    { // es factible
-        nodos_explorados++;
+    { // feasable
+        explored_nodes++;
         actual[node_amount] = true;
-        if (prometedor(actual, best_cost, next_node_amout))
+        if (promising(actual, best_cost, next_node_amout))
         {
-            algoritmo(actual, best, best_cost, gw_amount, next_node_amout, putted_gw + 1);
+            algorithm(actual, best, best_cost, gw_amount, next_node_amout, putted_gw + 1);
         }
         else
         {
-            nodos_descartados_no_prometedores++;
+            discarded_nodes_not_promising++;
         }
     }
     else
     {
-        nodos_descartados_no_factibles++;
+        discarded_nodes_not_feasible++;
     }
 
-    // si la quitamos
-    nodos_visitados++;
+    // remove it
+    visited_nodes++;
     if (gw_amount > INPUT_VALUES.gw_count)
-    { // es factible
-        nodos_explorados++;
+    { // feasable
+        explored_nodes++;
         actual[node_amount] = false;
-        if (prometedor(actual, best_cost, next_node_amout))
+        if (promising(actual, best_cost, next_node_amout))
         {
-            algoritmo(actual, best, best_cost, gw_amount - 1, next_node_amout, putted_gw);
+            algorithm(actual, best, best_cost, gw_amount - 1, next_node_amout, putted_gw);
         }
         else
         {
-            nodos_descartados_no_prometedores++;
+            discarded_nodes_not_promising++;
         }
     }
     else
     {
-        nodos_descartados_no_factibles++;
+        discarded_nodes_not_feasible++;
     }
 }
 
-bool prometedor(const vector<bool> &actual, double best_cost, size_t node_amount)
+bool promising(const vector<bool> &actual, double best_cost, size_t node_amount)
 {
     /*cout << "(";
     for(size_t i = 0; i < actual.size(); i++) {
@@ -188,11 +188,11 @@ void show(const vector<bool> &v, clock_t time)
     showVector(v);
     cout << endl;
 
-    cout << nodos_visitados << " "
-         << nodos_explorados << " "
-         << hojas_visitadas << " "
-         << nodos_descartados_no_factibles << " "
-         << nodos_descartados_no_prometedores << endl;
+    cout << visited_nodes << " "
+         << explored_nodes << " "
+         << visited_leafs << " "
+         << discarded_nodes_not_feasible << " "
+         << discarded_nodes_not_promising << endl;
 
     cout << 1000.0 * time / CLOCKS_PER_SEC << endl;
 }
@@ -211,7 +211,6 @@ void parseArgs(int argc, char **args)
         {
             if (++i >= argc)
             {
-                // falta el nombre del archivo
                 cerr << "ERROR: missing fiename." << endl;
                 showUssage();
                 exit(-1);
