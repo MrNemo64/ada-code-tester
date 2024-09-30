@@ -1,0 +1,8 @@
+{
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "files.associations": {
+    ".env*": "dotenv",
+    "bitset": "cpp",
+    "ostream": "cpp"
+  }
+}
